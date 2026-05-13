@@ -1,0 +1,82 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: gym_postgres
+    environment:
+      POSTGRES_DB: gymdb
+      POSTGRES_USER: gymuser
+      POSTGRES_PASSWORD: gympass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymuser -d gymdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gym_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Mountebank (mock pagamentos) ────────────────────────────────────────────
+  mountebank:
+    image: bbyars/mountebank:latest
+    container_name: gym_mountebank
+    ports:
+      - "2525:2525"
+      - "4545:4545"
+    volumes:
+      - ./mountebank:/mountebank
+    command: ["start", "--configfile", "/mountebank/imposters.json", "--allowInjection"]
+
+  # ── .NET 8 API ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./GymAPI
+      dockerfile: Dockerfile
+    container_name: gym_api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=gymdb;Username=gymuser;Password=gympass
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Key=SuperSecretGymKey2024!@#$%^&*()_+ABCDEF
+      - Jwt__Issuer=GymAPI
+      - Jwt__Audience=GymWebsite
+      - Jwt__ExpiryHours=8
+      - ExternalServices__PaymentUrl=http://mountebank:4545
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mountebank:
+        condition: service_started
+    restart: on-failure
+
+  # ── Website (Nginx) ─────────────────────────────────────────────────────────
+  website:
+    image: nginx:alpine
+    container_name: gym_website
+    ports:
+      - "3000:80"
+    volumes:
+      - ./website:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:

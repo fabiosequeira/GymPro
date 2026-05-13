@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>GymPro — Gestão de Ginásio</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #f0c040;
+    --accent2: #e05a20;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --success: #2dd4a4;
+    --danger: #e05a60;
+    --api: http://localhost:5000;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  
+  /* ── Auth Screen ── */
+  #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 40%, #1a1020 0%, var(--bg) 60%)}
+  .auth-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:420px;max-width:95vw}
+  .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:4px;color:var(--accent);margin-bottom:4px}
+  .auth-sub{color:var(--muted);font-size:.85rem;margin-bottom:36px;letter-spacing:1px;text-transform:uppercase}
+  .tab-row{display:flex;gap:0;margin-bottom:28px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .tab-btn{flex:1;padding:10px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:inherit;font-size:.9rem;transition:.2s}
+  .tab-btn.active{background:var(--accent);color:#000;font-weight:600}
+  
+  /* ── Form ── */
+  .form-group{margin-bottom:16px}
+  label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  input,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-family:inherit;font-size:.95rem;outline:none;transition:.2s}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(240,192,64,.1)}
+  select option{background:var(--card)}
+  .btn{width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:8px;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:.15s;margin-top:8px}
+  .btn:hover{filter:brightness(1.1)}
+  .btn:active{transform:scale(.98)}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-sm{width:auto;padding:7px 14px;font-size:.85rem;margin-top:0}
+  .err-msg{color:var(--danger);font-size:.85rem;margin-top:8px;display:none}
+
+  /* ── App Layout ── */
+  #app{display:none;min-height:100vh;flex-direction:column}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;height:60px;gap:16px;position:sticky;top:0;z-index:100}
+  .topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--accent)}
+  .topbar-role{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .topbar-user{margin-left:auto;font-size:.9rem;color:var(--muted)}
+  .btn-logout{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:inherit;font-size:.8rem;transition:.2s}
+  .btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+
+  .main{display:flex;flex:1}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 24px;cursor:pointer;color:var(--muted);font-size:.9rem;transition:.15s;border-left:3px solid transparent}
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(240,192,64,.06)}
+  .nav-icon{font-size:1.1rem;width:20px;text-align:center}
+  .content{flex:1;padding:32px;overflow-y:auto}
+
+  /* ── Cards & Sections ── */
+  .page{display:none}
+  .page.active{display:block}
+  .page-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;margin-bottom:4px}
+  .page-sub{color:var(--muted);font-size:.85rem;margin-bottom:28px}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:32px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden}
+  .stat-card::after{content:'';position:absolute;top:0;right:0;width:3px;height:100%;background:var(--accent)}
+  .stat-val{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:1px;color:var(--accent)}
+  .stat-label{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px}
+  .card-title{font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:.95rem}
+
+  /* ── Table ── */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:500;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+  td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:500}
+  .badge-green{background:rgba(45,212,164,.15);color:var(--success)}
+  .badge-yellow{background:rgba(240,192,64,.15);color:var(--accent)}
+  .badge-red{background:rgba(224,90,96,.15);color:var(--danger)}
+  .badge-blue{background:rgba(100,160,255,.15);color:#64a0ff}
+  .actions{display:flex;gap:8px}
+
+  /* ── Class Cards ── */
+  .class-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .class-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:.2s;cursor:pointer}
+  .class-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .class-name{font-weight:600;font-size:1rem;margin-bottom:4px}
+  .class-trainer{color:var(--muted);font-size:.82rem;margin-bottom:12px}
+  .class-meta{display:flex;gap:12px;font-size:.82rem;color:var(--muted);margin-bottom:12px;flex-wrap:wrap}
+  .class-meta span{display:flex;align-items:center;gap:4px}
+  .capacity-bar{height:4px;background:var(--border);border-radius:2px;margin-bottom:12px}
+  .capacity-fill{height:100%;border-radius:2px;background:var(--accent);transition:.3s}
+  .capacity-fill.full{background:var(--danger)}
+
+  /* ── Modal ── */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:460px;max-width:95vw;max-height:90vh;overflow-y:auto}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;margin-bottom:20px}
+  .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .modal-actions .btn{margin-top:0}
+
+  /* ── Toast ── */
+  #toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;font-size:.9rem;z-index:300;opacity:0;transform:translateY(10px);transition:.3s;max-width:320px}
+  #toast.show{opacity:1;transform:translateY(0)}
+  #toast.ok{border-color:var(--success);color:var(--success)}
+  #toast.err{border-color:var(--danger);color:var(--danger)}
+
+  /* ── Loader ── */
+  .loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted)}
+  .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH ───────────────────────────────────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">GymPro</div>
+    <div class="auth-sub">Sistema de Gestão</div>
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('login')">Entrar</button>
+      <button class="tab-btn" onclick="switchTab('register')">Registar</button>
+    </div>
+
+    <!-- Login -->
+    <div id="tab-login">
+      <div class="form-group"><label>Email</label><input id="l-email" type="email" placeholder="admin@gym.com" value="admin@gym.com"/></div>
+      <div class="form-group"><label>Password</label><input id="l-pass" type="password" placeholder="••••••••" value="admin123"/></div>
+      <div class="err-msg" id="l-err"></div>
+      <button class="btn" onclick="doLogin()">Entrar →</button>
+      <p style="color:var(--muted);font-size:.78rem;margin-top:16px;text-align:center">Demo: admin@gym.com / admin123<br>Trainer: carlos@gym.com / trainer123<br>Membro: joao@email.com / member123</p>
+    </div>
+
+    <!-- Register -->
+    <div id="tab-register" style="display:none">
+      <div class="form-group"><label>Nome</label><input id="r-name" type="text" placeholder="O teu nome"/></div>
+      <div class="form-group"><label>Email</label><input id="r-email" type="email" placeholder="email@exemplo.com"/></div>
+      <div class="form-group"><label>Password</label><input id="r-pass" type="password" placeholder="••••••••"/></div>
+      <div class="form-group"><label>Telefone</label><input id="r-phone" type="text" placeholder="910000000"/></div>
+      <div class="form-group"><label>Data de Nascimento</label><input id="r-birth" type="date"/></div>
+      <div class="form-group"><label>Plano</label>
+        <select id="r-plan"><option value="">A carregar planos...</option></select>
+      </div>
+      <div class="err-msg" id="r-err"></div>
+      <button class="btn" onclick="doRegister()">Criar conta →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ────────────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">GymPro</div>
+    <span class="topbar-role" id="user-role-badge">—</span>
+    <span class="topbar-user" id="user-name-top">—</span>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+  <div class="main">
+    <nav class="sidebar" id="sidebar">
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">◈</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('classes')" id="nav-classes"><span class="nav-icon">◷</span> Aulas</div>
+      <div class="nav-item" onclick="showPage('members')" id="nav-members" style="display:none"><span class="nav-icon">◉</span> Membros</div>
+      <div class="nav-item" onclick="showPage('trainers')" id="nav-trainers" style="display:none"><span class="nav-icon">◎</span> Treinadores</div>
+      <div class="nav-item" onclick="showPage('plans')" id="nav-plans" style="display:none"><span class="nav-icon">◈</span> Planos</div>
+      <div class="nav-item" onclick="showPage('payments')" id="nav-payments"><span class="nav-icon">◇</span> Pagamentos</div>
+    </nav>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Visão geral do ginásio</div>
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card"><div class="stat-val" id="stat-members">—</div><div class="stat-label">Membros Ativos</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-trainers">—</div><div class="stat-label">Treinadores</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-classes">—</div><div class="stat-label">Aulas Hoje</div></div>
+          <div class="stat-card"><div class="stat-val" id="stat-plans">—</div><div class="stat-label">Planos Ativos</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">◷ Próximas Aulas</div>
+            <div id="upcoming-classes"><div class="loader"><div class="spinner"></div>A carregar...</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">◈ Planos Disponíveis</div>
+            <div id="plans-preview"><div class="loader"><div class="spinner"></div>A carregar...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLASSES -->
+      <div class="page" id="page-classes">
+        <div class="page-title">Aulas</div>
+        <div class="page-sub">Horário e gestão de aulas</div>
+        <div style="margin-bottom:20px" id="create-class-btn-wrap" class="admin-only" style="display:none">
+          <button class="btn btn-outline btn-sm" onclick="openCreateClass()">+ Nova Aula</button>
+        </div>
+        <div id="classes-list"><div class="loader"><div class="spinner"></div>A carregar aulas...</div></div>
+      </div>
+
+      <!-- MEMBERS -->
+      <div class="page" id="page-members">
+        <div class="page-title">Membros</div>
+        <div class="page-sub">Gestão de clientes do ginásio</div>
+        <div id="members-list"><div class="loader"><div class="spinner"></div>A carregar membros...</div></div>
+      </div>
+
+      <!-- TRAINERS -->
+      <div class="page" id="page-trainers">
+        <div class="page-title">Treinadores</div>
+        <div class="page-sub">Equipa de treinadores</div>
+        <div style="margin-bottom:20px">
+          <button class="btn btn-outline btn-sm" onclick="openCreateTrainer()">+ Novo Treinador</button>
+        </div>
+        <div id="trainers-list"><div class="loader"><div class="spinner"></div>A carregar...</div></div>
+      </div>
+
+      <!-- PLANS -->
+      <div class="page" id="page-plans">
+        <div class="page-title">Planos</div>
+        <div class="page-sub">Planos de subscrição disponíveis</div>
+        <div style="margin-bottom:20px">
+          <button class="btn btn-outline btn-sm" onclick="openCreatePlan()">+ Novo Plano</button>
+        </div>
+        <div id="plans-list"><div class="loader"><div class="spinner"></div>A carregar...</div></div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div class="page" id="page-payments">
+        <div class="page-title">Pagamentos</div>
+        <div class="page-sub">Processar e consultar pagamentos</div>
+        <div class="grid-2" style="margin-bottom:24px">
+          <div class="card">
+            <div class="card-title">💳 Processar Pagamento (Mock)</div>
+            <div class="form-group"><label>ID do Membro</label><input id="pay-member" type="number" placeholder="1"/></div>
+            <div class="form-group"><label>Valor (€)</label><input id="pay-amount" type="number" step="0.01" placeholder="45.00"/></div>
+            <div class="form-group"><label>Descrição</label><input id="pay-desc" type="text" placeholder="Mensalidade Standard — Junho"/></div>
+            <button class="btn" onclick="processPayment()">Processar Pagamento →</button>
+            <div id="pay-result" style="margin-top:12px;font-size:.85rem"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📋 Histórico por Membro</div>
+            <div class="form-group"><label>ID do Membro</label><input id="hist-member" type="number" placeholder="1"/></div>
+            <button class="btn btn-outline" onclick="loadPaymentHistory()">Ver Histórico</button>
+            <div id="payment-history" style="margin-top:16px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── MODALS ──────────────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="modal-class">
+  <div class="modal">
+    <div class="modal-title" id="modal-class-title">Nova Aula</div>
+    <div class="form-group"><label>Nome</label><input id="mc-name" placeholder="Yoga, Spinning..."/></div>
+    <div class="form-group"><label>Descrição</label><input id="mc-desc" placeholder="Descrição da aula"/></div>
+    <div class="form-group"><label>Treinador</label><select id="mc-trainer"></select></div>
+    <div class="form-group"><label>Início</label><input id="mc-start" type="datetime-local"/></div>
+    <div class="form-group"><label>Fim</label><input id="mc-end" type="datetime-local"/></div>
+    <div class="form-group"><label>Capacidade Máxima</label><input id="mc-cap" type="number" value="15"/></div>
+    <div class="form-group"><label>Sala</label><input id="mc-room" placeholder="Sala A"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="submitCreateClass()">Criar Aula</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-class')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-trainer">
+  <div class="modal">
+    <div class="modal-title">Novo Treinador</div>
+    <div class="form-group"><label>Nome</label><input id="mt-name" placeholder="Nome completo"/></div>
+    <div class="form-group"><label>Email</label><input id="mt-email" type="email" placeholder="email@gym.com"/></div>
+    <div class="form-group"><label>Password</label><input id="mt-pass" type="password" placeholder="••••••••"/></div>
+    <div class="form-group"><label>Especialização</label><input id="mt-spec" placeholder="Yoga, Spinning..."/></div>
+    <div class="form-group"><label>Bio</label><input id="mt-bio" placeholder="Breve descrição"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="submitCreateTrainer()">Criar Treinador</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-trainer')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-plan">
+  <div class="modal">
+    <div class="modal-title">Novo Plano</div>
+    <div class="form-group"><label>Nome</label><input id="mp-name" placeholder="Premium, Básico..."/></div>
+    <div class="form-group"><label>Descrição</label><input id="mp-desc" placeholder="O que inclui"/></div>
+    <div class="form-group"><label>Preço (€/mês)</label><input id="mp-price" type="number" step="0.01" placeholder="45.00"/></div>
+    <div class="form-group"><label>Duração (meses)</label><input id="mp-dur" type="number" value="1"/></div>
+    <div class="form-group"><label>Aulas/mês (999 = ilimitado)</label><input id="mp-classes" type="number" value="10"/></div>
+    <div class="form-group"><label>Inclui Personal Trainer?</label>
+      <select id="mp-pt"><option value="false">Não</option><option value="true">Sim</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="submitCreatePlan()">Criar Plano</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-plan')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let token = localStorage.getItem('gym_token');
+let currentUser = JSON.parse(localStorage.getItem('gym_user') || 'null');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.message || `HTTP ${r.status}`);
+  return data;
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  setTimeout(() => el.className = '', 3000);
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function fmtDate(d) {
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-PT', { day:'2-digit', month:'short' }) + ' ' +
+         dt.toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i === 0) === (tab === 'login')));
+  if (tab === 'register') loadPlansForRegister();
+}
+
+async function loadPlansForRegister() {
+  try {
+    const data = await api('GET', '/plans');
+    const sel = document.getElementById('r-plan');
+    sel.innerHTML = data.data.map(p => `<option value="${p.id}">${p.name} — ${p.price}€/mês</option>`).join('');
+  } catch {}
+}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value;
+  const password = document.getElementById('l-pass').value;
+  try {
+    const data = await api('POST', '/auth/login', { email, password });
+    token = data.data.token;
+    currentUser = { name: data.data.name, email: data.data.email, role: data.data.role };
+    localStorage.setItem('gym_token', token);
+    localStorage.setItem('gym_user', JSON.stringify(currentUser));
+    initApp();
+  } catch (e) { showErr('l-err', e.message); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('r-name').value;
+  const email = document.getElementById('r-email').value;
+  const password = document.getElementById('r-pass').value;
+  const phone = document.getElementById('r-phone').value;
+  const birthDate = document.getElementById('r-birth').value;
+  const planId = parseInt(document.getElementById('r-plan').value);
+  try {
+    const data = await api('POST', '/auth/register', { name, email, password, phone, birthDate, planId });
+    token = data.data.token;
+    currentUser = { name: data.data.name, email: data.data.email, role: data.data.role };
+    localStorage.setItem('gym_token', token);
+    localStorage.setItem('gym_user', JSON.stringify(currentUser));
+    initApp();
+  } catch (e) { showErr('r-err', e.message); }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('gym_token'); localStorage.removeItem('gym_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ── App Init ──────────────────────────────────────────────────────────────────
+function initApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-name-top').textContent = currentUser.name;
+  document.getElementById('user-role-badge').textContent = currentUser.role;
+
+  const isAdmin = currentUser.role === 'Admin';
+  const isTrainerOrAdmin = isAdmin || currentUser.role === 'Trainer';
+
+  if (isAdmin) {
+    document.getElementById('nav-members').style.display = 'flex';
+    document.getElementById('nav-trainers').style.display = 'flex';
+    document.getElementById('nav-plans').style.display = 'flex';
+  }
+
+  showPage('dashboard');
+}
+
+// ── Pages ─────────────────────────────────────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+  const loaders = { dashboard: loadDashboard, classes: loadClasses, members: loadMembers, trainers: loadTrainers, plans: loadPlans };
+  loaders[page]?.();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [classes, trainers, plans] = await Promise.all([
+      api('GET', '/classes'), api('GET', '/trainers'), api('GET', '/plans')
+    ]);
+    let members = { data: { total: '—' } };
+    if (currentUser.role === 'Admin') {
+      try { members = await api('GET', '/members?page=1&pageSize=1'); } catch {}
+    }
+
+    document.getElementById('stat-classes').textContent = classes.data.length;
+    document.getElementById('stat-trainers').textContent = trainers.data.length;
+    document.getElementById('stat-plans').textContent = plans.data.length;
+    document.getElementById('stat-members').textContent = members.data.total ?? '—';
+
+    // Upcoming classes
+    const upcoming = classes.data.slice(0, 4);
+    document.getElementById('upcoming-classes').innerHTML = upcoming.length ? upcoming.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:500;font-size:.9rem">${c.name}</div>
+          <div style="color:var(--muted);font-size:.8rem">${c.trainerName} · ${c.room}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.82rem;color:var(--accent)">${fmtDate(c.startTime)}</div>
+          <div style="font-size:.78rem;color:var(--muted)">${c.enrolledCount}/${c.maxCapacity}</div>
+        </div>
+      </div>`).join('') : '<div class="empty">Sem aulas</div>';
+
+    // Plans preview
+    document.getElementById('plans-preview').innerHTML = plans.data.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:500;font-size:.9rem">${p.name}</div>
+          <div style="color:var(--muted);font-size:.8rem">${p.description}</div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--accent)">${p.price}€</div>
+      </div>`).join('');
+  } catch (e) { toast('Erro a carregar dashboard', 'err'); }
+}
+
+// ── Classes ───────────────────────────────────────────────────────────────────
+async function loadClasses() {
+  try {
+    const data = await api('GET', '/classes');
+    const isAdmin = currentUser.role === 'Admin' || currentUser.role === 'Trainer';
+    document.getElementById('create-class-btn-wrap').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('classes-list').innerHTML = data.data.length ? `
+      <div class="class-grid">${data.data.map(c => {
+        const pct = Math.round((c.enrolledCount / c.maxCapacity) * 100);
+        const full = c.enrolledCount >= c.maxCapacity;
+        return `<div class="class-card">
+          <div class="class-name">${c.name}</div>
+          <div class="class-trainer">🏋️ ${c.trainerName}</div>
+          <div class="class-meta">
+            <span>📅 ${fmtDate(c.startTime)}</span>
+            <span>📍 ${c.room}</span>
+          </div>
+          <div class="capacity-bar"><div class="capacity-fill ${full ? 'full' : ''}" style="width:${pct}%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.8rem;color:var(--muted)">${c.enrolledCount}/${c.maxCapacity} inscritos</span>
+            <span class="badge ${full ? 'badge-red' : 'badge-green'}">${full ? 'Cheio' : 'Vagas'}</span>
+          </div>
+        </div>`;}).join('')}</div>` : '<div class="empty">Sem aulas</div>';
+  } catch (e) { toast('Erro a carregar aulas', 'err'); }
+}
+
+async function openCreateClass() {
+  try {
+    const data = await api('GET', '/trainers');
+    document.getElementById('mc-trainer').innerHTML = data.data.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  } catch {}
+  document.getElementById('modal-class').classList.add('open');
+}
+
+async function submitCreateClass() {
+  try {
+    await api('POST', '/classes', {
+      name: document.getElementById('mc-name').value,
+      description: document.getElementById('mc-desc').value,
+      trainerId: parseInt(document.getElementById('mc-trainer').value),
+      startTime: new Date(document.getElementById('mc-start').value).toISOString(),
+      endTime: new Date(document.getElementById('mc-end').value).toISOString(),
+      maxCapacity: parseInt(document.getElementById('mc-cap').value),
+      room: document.getElementById('mc-room').value
+    });
+    closeModal('modal-class');
+    toast('Aula criada com sucesso!');
+    loadClasses();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ── Members ───────────────────────────────────────────────────────────────────
+async function loadMembers() {
+  try {
+    const data = await api('GET', '/members?page=1&pageSize=50');
+    document.getElementById('members-list').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Plano</th><th>Válido até</th><th>Estado</th><th>Ações</th></tr></thead>
+        <tbody>${data.data.items.map(m => `<tr>
+          <td><strong>${m.name}</strong></td>
+          <td style="color:var(--muted)">${m.email}</td>
+          <td>${m.phone}</td>
+          <td><span class="badge badge-yellow">${m.planName}</span></td>
+          <td style="font-size:.82rem">${new Date(m.planEndDate).toLocaleDateString('pt-PT')}</td>
+          <td><span class="badge ${m.isActive ? 'badge-green' : 'badge-red'}">${m.isActive ? 'Ativo' : 'Inativo'}</span></td>
+          <td><div class="actions">
+            ${m.isActive ? `<button class="btn btn-danger btn-sm" onclick="deactivateMember(${m.id})">Desativar</button>` : ''}
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  } catch (e) { toast('Erro a carregar membros', 'err'); }
+}
+
+async function deactivateMember(id) {
+  if (!confirm('Desativar este membro?')) return;
+  try { await api('DELETE', `/members/${id}`); toast('Membro desativado'); loadMembers(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ── Trainers ──────────────────────────────────────────────────────────────────
+async function loadTrainers() {
+  try {
+    const data = await api('GET', '/trainers');
+    document.getElementById('trainers-list').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>Especialização</th><th>Bio</th><th>Estado</th><th>Ações</th></tr></thead>
+        <tbody>${data.data.map(t => `<tr>
+          <td><strong>${t.name}</strong></td>
+          <td style="color:var(--muted)">${t.email}</td>
+          <td><span class="badge badge-blue">${t.specialization}</span></td>
+          <td style="font-size:.82rem;color:var(--muted)">${t.bio}</td>
+          <td><span class="badge ${t.isActive ? 'badge-green' : 'badge-red'}">${t.isActive ? 'Ativo' : 'Inativo'}</span></td>
+          <td><div class="actions">
+            ${t.isActive ? `<button class="btn btn-danger btn-sm" onclick="deactivateTrainer(${t.id})">Desativar</button>` : ''}
+          </div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+  } catch (e) { toast('Erro a carregar treinadores', 'err'); }
+}
+
+function openCreateTrainer() { document.getElementById('modal-trainer').classList.add('open'); }
+
+async function submitCreateTrainer() {
+  try {
+    await api('POST', '/trainers', {
+      name: document.getElementById('mt-name').value,
+      email: document.getElementById('mt-email').value,
+      password: document.getElementById('mt-pass').value,
+      specialization: document.getElementById('mt-spec').value,
+      bio: document.getElementById('mt-bio').value
+    });
+    closeModal('modal-trainer');
+    toast('Treinador criado!');
+    loadTrainers();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function deactivateTrainer(id) {
+  if (!confirm('Desativar este treinador?')) return;
+  try { await api('DELETE', `/trainers/${id}`); toast('Treinador desativado'); loadTrainers(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ── Plans ─────────────────────────────────────────────────────────────────────
+async function loadPlans() {
+  try {
+    const data = await api('GET', '/plans');
+    document.getElementById('plans-list').innerHTML = `
+      <div class="class-grid">${data.data.map(p => `
+        <div class="class-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="class-name">${p.name}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--accent)">${p.price}€</div>
+          </div>
+          <div class="class-trainer" style="margin-bottom:12px">${p.description}</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px">
+            ${p.maxClassesPerMonth === 999 ? '∞ aulas/mês' : `${p.maxClassesPerMonth} aulas/mês`} · ${p.durationMonths} mês
+          </div>
+          <div style="font-size:.82rem;margin-bottom:12px">
+            <span class="badge ${p.includesPersonalTrainer ? 'badge-yellow' : 'badge-blue'}">
+              ${p.includesPersonalTrainer ? '★ Personal Trainer' : 'Sem Personal Trainer'}
+            </span>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deletePlan(${p.id})">Eliminar</button>
+        </div>`).join('')}</div>`;
+  } catch (e) { toast('Erro a carregar planos', 'err'); }
+}
+
+function openCreatePlan() { document.getElementById('modal-plan').classList.add('open'); }
+
+async function submitCreatePlan() {
+  try {
+    await api('POST', '/plans', {
+      name: document.getElementById('mp-name').value,
+      description: document.getElementById('mp-desc').value,
+      price: parseFloat(document.getElementById('mp-price').value),
+      durationMonths: parseInt(document.getElementById('mp-dur').value),
+      maxClassesPerMonth: parseInt(document.getElementById('mp-classes').value),
+      includesPersonalTrainer: document.getElementById('mp-pt').value === 'true'
+    });
+    closeModal('modal-plan');
+    toast('Plano criado!');
+    loadPlans();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function deletePlan(id) {
+  if (!confirm('Eliminar este plano?')) return;
+  try { await api('DELETE', `/plans/${id}`); toast('Plano eliminado'); loadPlans(); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+// ── Payments ──────────────────────────────────────────────────────────────────
+async function processPayment() {
+  const memberId = parseInt(document.getElementById('pay-member').value);
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const description = document.getElementById('pay-desc').value;
+  const el = document.getElementById('pay-result');
+  el.textContent = '⏳ A processar (via Mountebank mock)...';
+  try {
+    const data = await api('POST', '/payments', { memberId, amount, description });
+    el.innerHTML = data.data.success
+      ? `<span style="color:var(--success)">✔ Sucesso! TXN: ${data.data.transactionId}</span>`
+      : `<span style="color:var(--danger)">✖ Falhou: ${data.data.message}</span>`;
+    toast(data.data.success ? 'Pagamento processado!' : 'Pagamento falhou', data.data.success ? 'ok' : 'err');
+  } catch (e) { el.innerHTML = `<span style="color:var(--danger)">Erro: ${e.message}</span>`; }
+}
+
+async function loadPaymentHistory() {
+  const memberId = document.getElementById('hist-member').value;
+  const el = document.getElementById('payment-history');
+  el.innerHTML = '<div class="loader"><div class="spinner"></div>A carregar...</div>';
+  try {
+    const data = await api('GET', `/payments/member/${memberId}`);
+    el.innerHTML = data.data.length ? `<table style="width:100%;font-size:.82rem">
+      <thead><tr><th>Data</th><th>Valor</th><th>Estado</th></tr></thead>
+      <tbody>${data.data.map(p => `<tr>
+        <td>${new Date(p.createdAt).toLocaleDateString('pt-PT')}</td>
+        <td>${p.amount}€</td>
+        <td><span class="badge ${p.status === 'Completed' ? 'badge-green' : 'badge-red'}">${p.status}</span></td>
+      </tr>`).join('')}</tbody></table>` : '<div class="empty">Sem pagamentos</div>';
+  } catch (e) { el.innerHTML = `<div class="empty">Erro: ${e.message}</div>`; }
+}
+
+// ── Close modals on bg click ──────────────────────────────────────────────────
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+// ── Auto-login if token exists ────────────────────────────────────────────────
+if (token && currentUser) initApp();
+</script>
+</body>
+</html>

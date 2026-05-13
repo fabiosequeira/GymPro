@@ -1,0 +1,78 @@
+{
+  "port": 2525,
+  "name": "GymPaymentMock",
+  "imposters": [
+    {
+      "port": 4545,
+      "protocol": "http",
+      "name": "Payment Gateway Mock",
+      "stubs": [
+        {
+          "predicates": [
+            {
+              "and": [
+                { "equals": { "method": "POST", "path": "/payment/process" } },
+                { "exists": { "body": { "amount": true } } }
+              ]
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "success": true,
+                  "transactionId": "TXN-<%- Math.random().toString(36).substr(2,10).toUpperCase() %>",
+                  "message": "Payment processed successfully",
+                  "timestamp": "<%- new Date().toISOString() %>"
+                },
+                "_behaviors": {
+                  "decorate": "function(request, response) { response.body.transactionId = 'TXN-' + Math.random().toString(36).substr(2,10).toUpperCase(); }"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            {
+              "equals": { "method": "POST", "path": "/payment/fail-test" }
+            }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 402,
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "success": false,
+                  "message": "Insufficient funds",
+                  "code": "PAYMENT_FAILED"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "predicates": [
+            { "equals": { "method": "GET", "path": "/payment/status" } }
+          ],
+          "responses": [
+            {
+              "is": {
+                "statusCode": 200,
+                "headers": { "Content-Type": "application/json" },
+                "body": {
+                  "service": "Payment Gateway",
+                  "status": "operational",
+                  "version": "1.0.0"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
