@@ -1,6 +1,6 @@
 # GymPro — Sistema de Gestão de Ginásio
 
-Projeto final desenvolvido para a UFCD 10794.  
+Projeto final desenvolvido para a UFCD 10792.  
 Sistema completo de gestão de um ginásio com API REST em .NET 8, base de dados PostgreSQL, cache Redis, mock de serviços externos (Mountebank) e website de gestão.
 
 ---
