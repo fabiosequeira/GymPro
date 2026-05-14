@@ -15,7 +15,7 @@ Sistema completo de gestão de um ginásio com API REST em .NET 8, base de dados
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/<teu-username>/gympro.git
+git clone https://github.com/fabiosequeira/GymPro.git
 cd gympro
 ```
 
